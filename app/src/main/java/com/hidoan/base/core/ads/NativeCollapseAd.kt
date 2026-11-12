@@ -1,0 +1,329 @@
+package com.hidoan.base.core.ads
+
+import android.app.Activity
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdEventCallback
+import com.google.android.libraries.ads.mobile.sdk.common.AdValue
+import androidx.core.view.isVisible
+import com.hidoan.base.R
+import com.hidoan.base.core.ads.template.NativeAdTemplate
+import com.hidoan.base.core.ads.template.NativeTemplateSpec
+import com.hidoan.base.databinding.AdBannerShimmerBinding
+
+/**
+ * "Native collapsible": một [NativeAd] hiển thị ở hai kích thước. Khi load xong nó mở dạng lớn, gắn
+ * vào đáy content root của activity để - giống collapsible banner của chính AdMob - nó nổi đè lên
+ * màn hình thay vì đẩy nội dung lên. Đóng nó thì chính ad đó được chuyển vào [container] thành một
+ * dải cỡ banner. Ad chỉ register vào một view tại một thời điểm; trong lúc đang lớn, [container]
+ * giữ shimmer để slot đã có sẵn kích thước khi dải nhỏ được đặt vào.
+ *
+ * Ad đến trong lúc activity chưa resume sẽ chờ tới onResume mới mở, để view lớn không bao giờ bật
+ * lên phía sau một màn khác. Không có fill thì ẩn [container].
+ *
+ * Một lần reload (timer của [BannerSlotReloader], hoặc màn hình gọi [reload]) bỏ ad hiện tại - lớn
+ * hay nhỏ - và đưa slot về shimmer nhỏ, rồi mở ad mới ở dạng lớn lần nữa. Shimmer được giữ ít nhất
+ * [BannerSlotReloader.MIN_RELOAD_SHIMMER_MS]; reload thất bại thì ẩn slot cho tới lần reload kế tiếp.
+ *
+ * Gọi [start] một lần; owner destroy nó qua [AdHandle.destroy], việc này cũng destroy luôn ad.
+ */
+internal class NativeCollapseAd(
+    private val activity: Activity,
+    private val container: ViewGroup,
+    private val placement: NativePlacement = NativePlacement.NATIVE_COLLAPSIBLE,
+    private val collapGate: CollapClickGate,
+    autoReload: Boolean,
+    reloadGapMs: Long,
+    private val onStatus: (String) -> Unit = {},
+) : BannerSlotHandle {
+    enum class State { IDLE, LOADING, LARGE, SMALL, HIDDEN }
+
+    var state: State = State.IDLE
+        private set
+
+    private val lifecycle: Lifecycle? = (activity as? LifecycleOwner)?.lifecycle
+    private val overlay = FrameLayout(activity)
+    private var request: AdHandle? = null
+    private var shimmer: AdBannerShimmerBinding? = null
+    private var currentView: NativeAdView? = null
+    private var currentAd: NativeAd? = null
+    /** Ad đã load đang chờ mở dạng lớn - chờ hết shimmer tối thiểu của reload, hoặc chờ onResume. */
+    private var pendingAd: NativeAd? = null
+    private var destroyed = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val reloader = BannerSlotReloader(activity, autoReload, reloadGapMs, ::reloadNow)
+    /** Thời điểm shimmer của lượt load hiện tại được hiện lên, nếu nó phải giữ một thời gian tối thiểu (chỉ khi reload). */
+    private var minShimmerUntil = 0L
+
+    private val revealRunnable = Runnable { revealPending() }
+
+    private val lifecycleObserver = object : DefaultLifecycleObserver {
+        override fun onResume(owner: LifecycleOwner) {
+            revealPending()
+        }
+    }
+
+    fun start(): NativeCollapseAd {
+        if (destroyed || state != State.IDLE) return this
+        if (!Ads.isReady || !AdPolicy.nativeAllowed) {
+            onStatus("Native collapsible: SDK not ready")
+            hide()
+            return this
+        }
+        state = State.LOADING
+        container.visibility = View.VISIBLE
+        showShimmer()
+        lifecycle?.addObserver(lifecycleObserver)
+        requestAd()
+        return this
+    }
+
+    private fun requestAd() {
+        onStatus("Native collapsible: loading")
+        reloader.onLoadStarted()
+        request?.destroy()
+        request = NativeAds.request(
+            activity, placement,
+            onFailed = { error ->
+                request = null
+                onStatus("Native collapsible: $error")
+                hide()
+                reloader.onFailed()
+            },
+            onReady = { ad ->
+                request = null
+                onAdLoaded(ad)
+            },
+        )
+    }
+
+    private fun onAdLoaded(ad: NativeAd) {
+        if (destroyed) {
+            ad.destroy()
+            return
+        }
+        pendingAd?.destroy()
+        pendingAd = ad
+        revealPending()
+    }
+
+    /** Mở [pendingAd] dạng lớn khi đã hết shimmer tối thiểu và activity đang resume. */
+    private fun revealPending() {
+        val ad = pendingAd ?: return
+        handler.removeCallbacks(revealRunnable)
+        val wait = minShimmerUntil - SystemClock.elapsedRealtime()
+        if (wait > 0) {
+            handler.postDelayed(revealRunnable, wait)
+            return
+        }
+        if (!isResumed()) return // lifecycleObserver.onResume sẽ gọi lại vào đây.
+        pendingAd = null
+        showLarge(ad)
+    }
+
+    /** Từ đây ad đã lên màn hình - nên khoảng cách reload bắt đầu tính từ đây, không phải từ lúc load. */
+    private fun showLarge(ad: NativeAd) {
+        currentAd = ad
+        val view = renderLarge(ad)
+        overlay.removeAllViews()
+        overlay.addView(view)
+        attachOverlay()
+        currentView = view
+        state = State.LARGE
+        onStatus("Native collapsible: large")
+        // Ad này giờ đã được dùng - chuẩn bị sẵn ad kế tiếp cho màn (hoặc lần reload) tiếp theo cần tới.
+        NativeAds.preload(placement)
+        reloader.onShown()
+    }
+
+    override fun reload() = reloader.reloadNow()
+
+    /** Reload: bỏ ad hiện tại, quay về shimmer nhỏ, và mở ad kế tiếp dạng lớn khi nó về. */
+    private fun reloadNow() {
+        if (destroyed) return
+        request?.destroy()
+        request = null
+        handler.removeCallbacks(revealRunnable)
+        pendingAd?.destroy()
+        pendingAd = null
+        detachOverlay()
+        overlay.removeAllViews()
+        currentView?.destroy()
+        currentView = null
+        currentAd?.destroy()
+        currentAd = null
+        state = State.LOADING
+        container.visibility = View.VISIBLE
+        showShimmer()
+        minShimmerUntil = SystemClock.elapsedRealtime() + BannerSlotReloader.MIN_RELOAD_SHIMMER_MS
+        requestAd()
+    }
+
+    private fun isResumed(): Boolean =
+        lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) != false
+
+    /** Chuyển ad hiện tại từ overlay lớn vào [container] - giữ nguyên chính ad đó, không reload. */
+    private fun showSmall() {
+        val ad = currentAd ?: return hide()
+        detachOverlay()
+        overlay.removeAllViews()
+        clearShimmer()
+        val view = renderSmall(ad)
+        container.removeAllViews()
+        container.addView(view, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        currentView = view
+        state = State.SMALL
+        onStatus("Native collapsible: small")
+    }
+
+    /** Không có ad để hiện - giải phóng hẳn slot thay vì để lại một dải trống. */
+    private fun hide() {
+        request?.destroy()
+        request = null
+        detachOverlay()
+        overlay.removeAllViews()
+        clearShimmer()
+        container.removeAllViews()
+        container.visibility = View.GONE
+        state = State.HIDDEN
+    }
+
+    override fun destroy() {
+        if (destroyed) return
+        destroyed = true
+        runOnMainThread {
+            reloader.cancel()
+            handler.removeCallbacks(revealRunnable)
+            lifecycle?.removeObserver(lifecycleObserver)
+            request?.destroy()
+            request = null
+            detachOverlay()
+            overlay.removeAllViews()
+            clearShimmer()
+            currentView?.destroy()
+            currentView = null
+            container.removeAllViews()
+            currentAd?.destroy()
+            currentAd = null
+            pendingAd?.destroy()
+            pendingAd = null
+            state = State.HIDDEN
+        }
+    }
+
+    private fun showShimmer() {
+        val binding = AdBannerShimmerBinding.inflate(LayoutInflater.from(activity))
+        container.removeAllViews()
+        container.addView(binding.root)
+        binding.root.startShimmer()
+        shimmer = binding
+    }
+
+    private fun clearShimmer() {
+        shimmer?.let { it.root.stopShimmer(); container.removeView(it.root) }
+        shimmer = null
+    }
+
+    /**
+     * Gắn [overlay] vào đáy content root của [activity], nằm ngoài luồng layout riêng của mọi màn,
+     * để nó nổi đè lên nội dung hiện tại thay vì đẩy nội dung lên. Tự chừa inset cho system bar phía
+     * dưới vì nó nằm ngoài phần padding mà BaseActivity áp cho root của màn hình.
+     */
+    private fun attachOverlay() {
+        if (overlay.parent != null) return
+        overlay.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM,
+        )
+        ViewCompat.setOnApplyWindowInsetsListener(overlay) { view, insets ->
+            applyBottomInset(view, insets)
+            insets
+        }
+        // Window đã dispatch insets từ lâu trước khi overlay này được thêm vào, nên listener ở trên sẽ
+        // không chạy cho tới lần thay đổi kế tiếp - set padding theo insets hiện tại ngay, rồi yêu cầu
+        // dispatch lại để các thay đổi sau (xoay màn hình, đổi nav cử chỉ/3 nút) vẫn tới được nó.
+        val decorView = activity.window.decorView
+        ViewCompat.getRootWindowInsets(decorView)?.let { applyBottomInset(overlay, it) }
+        decorView.findViewById<ViewGroup>(android.R.id.content).addView(overlay)
+        ViewCompat.requestApplyInsets(overlay)
+    }
+
+    private fun applyBottomInset(view: View, insets: WindowInsetsCompat) {
+        val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, bars.bottom)
+    }
+
+    private fun detachOverlay() {
+        (overlay.parent as? ViewGroup)?.removeView(overlay)
+    }
+
+    /**
+     * Bộ mẫu của placement: `template` là Collap1 / Collap2 / Collap3 (kèm style `ad_templates`); trống hoặc mẫu khác
+     * (vd. mẫu dành cho format native thường của cùng placement) thì dùng Collap1.
+     */
+    private fun collapSet(): Pair<NativeTemplateSpec, NativeTemplateSpec> {
+        val spec = NativeAds.templateFor(placement)
+        val large = spec.template.takeIf { it.collapsed != null } ?: NativeAdTemplate.COLLAP1
+        return NativeTemplateSpec(large, spec.style) to NativeTemplateSpec(large.collapsed!!, spec.style)
+    }
+
+    /** Dạng lớn của bộ (Collap*), hiện nút thu gọn (Collap1 / Collap3) hoặc nút đóng (Collap2) để chuyển về [renderSmall]. */
+    private fun renderLarge(ad: NativeAd): NativeAdView {
+        val view = NativeAds.renderTemplate(activity, ad, collapSet().first)
+        view.elevation = 8 * activity.resources.displayMetrics.density
+        val gate = collapGate
+        if (gate.isEnabled) {
+            // open_ad_on_clicks đếm mọi click trên quảng cáo: click trên thẻ do SDK tự mở quảng cáo, ta chỉ đếm qua
+            // onAdClicked (vẫn ghi doanh thu như callback gốc). Lần click do chính ta bấm hộ (dưới) không đếm lại.
+            ad.adEventCallback = object : NativeAdEventCallback {
+                override fun onAdPaid(adValue: AdValue) = AdjustRevenueLogger.log(adValue)
+                override fun onAdClicked() {
+                    if (selfClickPending) selfClickPending = false else clickCount++
+                }
+            }
+        }
+        val button = view.findViewById<View>(R.id.ad_collapse) ?: view.findViewById(R.id.ad_close)
+        button?.visibility = View.VISIBLE
+        button?.setOnClickListener {
+            // Lần click nằm trong open_ad_on_clicks thì mở quảng cáo thay vì thu nhỏ - xem [CollapClickGate].
+            if (gate.opensAd(++clickCount)) {
+                onStatus("Native collapsible: click $clickCount opens the ad")
+                selfClickPending = true
+                val cta = view.findViewById<View>(R.id.ad_call_to_action)
+                (cta?.takeIf { it.isVisible } ?: view.findViewById(R.id.ad_headline)).performClick()
+            } else {
+                selfClickPending = false
+                showSmall()
+            }
+        }
+        return view
+    }
+
+    /** Dải của bộ (Tiny1 / Tiny2), cùng ad đó, không có media. */
+    private fun renderSmall(ad: NativeAd): NativeAdView =
+        NativeAds.renderTemplate(activity, ad, collapSet().second)
+
+    private fun visibility(value: Any?) = if (value == null) View.GONE else View.VISIBLE
+
+    private companion object {
+        /** Số click trên native collapsible trong phiên app này (thẻ + nút X), dùng chung cho mọi ad và màn - open_ad_on_clicks. */
+        var clickCount = 0
+
+        /** Đang chờ onAdClicked của lần ta bấm hộ CTA, để không đếm nó hai lần. */
+        var selfClickPending = false
+    }
+}

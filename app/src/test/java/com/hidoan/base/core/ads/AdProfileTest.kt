@@ -1,0 +1,53 @@
+package com.hidoan.base.core.ads
+
+import com.hidoan.base.core.config.AdsProfileRule
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class AdProfileTest {
+    private fun profile(rule: AdsProfileRule, premium: Boolean = false, marketing: Boolean? = null, testAd: Boolean? = null) =
+        resolveAdProfile(rule, premium, marketing, testAd)
+
+    @Test
+    fun offAndFullForAll() {
+        assertEquals(AdProfile.OFF, profile(AdsProfileRule.OFF))
+        assertEquals(AdProfile.FULL, profile(AdsProfileRule.FULL_FOR_ALL, marketing = false, testAd = true))
+    }
+
+    @Test
+    fun fullForPaidUsersOnly() {
+        assertEquals(AdProfile.FULL, profile(AdsProfileRule.FULL_FOR_PAID_USERS, marketing = true))
+        assertEquals(AdProfile.BASIC, profile(AdsProfileRule.FULL_FOR_PAID_USERS, marketing = false))
+        // Chưa biết nguồn (Adjust chưa trả attribution) = như user tự nhiên.
+        assertEquals(AdProfile.BASIC, profile(AdsProfileRule.FULL_FOR_PAID_USERS, marketing = null))
+    }
+
+    @Test
+    fun fullExceptTestDevices() {
+        assertEquals(AdProfile.BASIC, profile(AdsProfileRule.FULL_EXCEPT_TEST_DEVICES, testAd = true))
+        assertEquals(AdProfile.FULL, profile(AdsProfileRule.FULL_EXCEPT_TEST_DEVICES, testAd = false))
+        assertEquals(AdProfile.FULL, profile(AdsProfileRule.FULL_EXCEPT_TEST_DEVICES, testAd = null))
+    }
+
+    @Test
+    fun premiumAlwaysOff() {
+        for (rule in AdsProfileRule.entries) assertEquals(AdProfile.OFF, profile(rule, premium = true, marketing = true))
+    }
+
+    @Test
+    fun ruleNamesMatchTheSheet() {
+        assertEquals(
+            listOf("off", "full_for_all", "full_for_paid_users", "full_except_test_devices"),
+            AdsProfileRule.entries.map { it.key },
+        )
+        assertEquals(AdsProfileRule.FULL_FOR_PAID_USERS, AdsProfileRule.fromKey(" Full_For_Paid_Users "))
+        // Sheet / Firebase ghi số 0-3.
+        assertEquals(listOf(0, 1, 2, 3), AdsProfileRule.entries.map { it.code })
+        assertEquals(AdsProfileRule.OFF, AdsProfileRule.fromKey("0"))
+        assertEquals(AdsProfileRule.FULL_FOR_PAID_USERS, AdsProfileRule.fromKey("2"))
+        assertEquals(AdsProfileRule.FULL_EXCEPT_TEST_DEVICES, AdsProfileRule.fromKey("3.0"))
+        assertNull(AdsProfileRule.fromKey("4"))
+        assertNull(AdsProfileRule.fromKey("2.5"))
+    }
+}

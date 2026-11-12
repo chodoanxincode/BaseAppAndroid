@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_header"
+        android:minHeight="72dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="72dp"
+            android:paddingBottom="22dp"
+            android:text="@string/choose_language"
+            android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
+
+        <ImageView
+            android:id="@+id/apply_icon"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginTop="-4dp"
+            android:layout_marginEnd="14dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/apply_label"
+            android:padding="10dp"
+            android:src="@drawable/ic_check"
+            android:visibility="invisible"
+            app:tint="@color/white" />
+
+        <ProgressBar
+            android:id="@+id/apply_loading"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginTop="-4dp"
+            android:layout_marginEnd="20dp"
+            android:indeterminateTint="@color/white"
+            android:visibility="invisible" />
+    </FrameLayout>
+
+    <!-- native_language_small: dải native nhỏ (mặc định Tiny1) ngay dưới tiêu đề; tắt / không có ad thì ẩn. -->
+    <FrameLayout
+        android:id="@+id/native_small_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/language_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/apply_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/apply_label"
+            android:visibility="invisible" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/native_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="120dp" />
+</LinearLayout>

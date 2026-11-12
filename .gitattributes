@@ -1,0 +1,4 @@
+# Script shell phải giữ LF để chạy được trên macOS / Linux / Git Bash
+*.sh text eol=lf
+gradlew text eol=lf
+*.bat text eol=crlf

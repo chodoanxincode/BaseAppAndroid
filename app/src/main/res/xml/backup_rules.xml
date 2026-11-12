@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   File mẫu quy tắc sao lưu; bỏ comment và tùy chỉnh khi cần.
+   Xem https://developer.android.com/guide/topics/data/autobackup
+   để biết chi tiết.
+   Lưu ý: file này bị bỏ qua trên thiết bị cũ hơn API 31
+   Xem https://developer.android.com/about/versions/12/backup-restore
+-->
+<full-backup-content>
+    <!--
+   <include domain="sharedpref" path="."/>
+   <exclude domain="sharedpref" path="device.xml"/>
+-->
+</full-backup-content>

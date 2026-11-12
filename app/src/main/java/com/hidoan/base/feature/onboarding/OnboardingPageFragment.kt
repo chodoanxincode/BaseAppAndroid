@@ -1,0 +1,40 @@
+package com.hidoan.base.feature.onboarding
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import com.hidoan.base.R
+import com.hidoan.base.core.ads.NativePlacement
+import com.hidoan.base.core.ui.base.BaseFragment
+import com.hidoan.base.databinding.FragmentOnboardingPageBinding
+
+class OnboardingPageFragment : BaseFragment<FragmentOnboardingPageBinding>() {
+    /** Index trang nội dung, 0-3 - không tính trang native full-screen. */
+    private val page get() = requireArguments().getInt(ARG_PAGE)
+
+    override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?) =
+        FragmentOnboardingPageBinding.inflate(inflater, container, false)
+
+    override fun initViews() {
+        binding.pageTitle.setText(TITLES[page])
+        binding.pageBody.setText(BODIES[page])
+        loadNative(binding.nativeContainer, PLACEMENTS[page])
+    }
+
+    companion object {
+        private const val ARG_PAGE = "page"
+        private val TITLES = intArrayOf(
+            R.string.onboarding_title_1, R.string.onboarding_title_2, R.string.onboarding_title_3, R.string.onboarding_title_4,
+        )
+        private val BODIES = intArrayOf(
+            R.string.onboarding_body_1, R.string.onboarding_body_2, R.string.onboarding_body_3, R.string.onboarding_body_4,
+        )
+        val PLACEMENTS = listOf(
+            NativePlacement.ONBOARDING_1, NativePlacement.ONBOARDING_2, NativePlacement.ONBOARDING_3, NativePlacement.ONBOARDING_4,
+        )
+
+        /** Số trang nội dung - mỗi trang đọc cấu hình riêng qua RemoteConfig.onboardingSetup. */
+        val CONTENT_PAGE_COUNT get() = TITLES.size
+        fun newInstance(page: Int) = OnboardingPageFragment().apply { arguments = Bundle().apply { putInt(ARG_PAGE, page) } }
+    }
+}

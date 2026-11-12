@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   File mẫu quy tắc trích xuất dữ liệu; bỏ comment và tùy chỉnh khi cần.
+   Xem https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   để biết chi tiết.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- TODO: Dùng <include> và <exclude> để chọn dữ liệu được sao lưu.
+        <include .../>
+        <exclude .../>
+        -->
+    </cloud-backup>
+    <!--
+    <device-transfer>
+        <include .../>
+        <exclude .../>
+    </device-transfer>
+    -->
+</data-extraction-rules>
