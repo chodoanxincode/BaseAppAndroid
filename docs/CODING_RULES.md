@@ -64,7 +64,7 @@ Kiến trúc ở playbook mục 10.
 
 - Màn mới: kế thừa `BaseActivity`, `@AndroidEntryPoint`, khai báo manifest (`exported="false"`, `screenOrientation`).
   Logic chỉ trong các hook `initConfig` / `initViews` / `initListeners` / `observeData` / `releaseResources`.
-- Mọi chữ trong `strings.xml` **en + vi**. Mọi màu là `@color/` token. Kích thước theo tỉ lệ khi phần tử co theo màn.
+- Mọi chữ trong `strings.xml` (en; ngôn ngữ khác chỉ khi app đã có). Mọi màu là `@color/` token. Kích thước theo tỉ lệ khi phần tử co theo màn.
 - Tài nguyên phải release: player trong `onCleared`; listener gán `null`; `onStop` dừng âm thanh.
 - Chặn bấm đúp mở màn; toast dùng lại một instance (hoặc `AppToast`).
 - Quyền: kiểm theo API qua `StorageAccess`; từ chối hẳn → dẫn tới Cài đặt app.
@@ -85,7 +85,7 @@ Kiến trúc ở playbook mục 10.
 - [ ] Đọc lại diff (`git diff --stat` + diff các file chính): không có code chết, log debug, file sửa nhầm, chữ / màu
       hard-code.
 - [ ] Chạy trên máy nếu đụng UI / âm thanh / vòng đời; `check_crash.sh` sạch.
-- [ ] Cập nhật ghi chú theo mục 8.
+- [ ] Cập nhật ghi chú theo mục 8, rồi commit (push chỉ khi được bảo).
 - [ ] Báo người dùng đúng sự thật: cái gì đã chạy, cái gì chưa kiểm.
 
 ## 8. Ghi chú cho phiên sau (ít token, đọc là hiểu)

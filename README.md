@@ -97,6 +97,7 @@ skills/                  skill cho agent: decompile APK đã cài, thiết kế 
 
 ## Trước khi dùng cho app thật
 
-- [ ] Thay `app/google-services.json` bằng file từ **Firebase project của bạn** (file hiện tại chỉ để build được).
+- [ ] Thay `app/google-services.json` bằng file từ **Firebase project của bạn**. File hiện tại là **file mẫu**
+      (giá trị `replace-with-...`) chỉ để build được; Remote Config sẽ không tải được cho tới khi thay.
 - [ ] Điền AdMob app ID, `ad_ids`, Adjust token, Billing product ID thật (`docs/BASE_GUIDE.md` mục 9).
 - [ ] Đổi `applicationId`, tên app, icon theo `docs/APP_PLAYBOOK.md` mục 5.

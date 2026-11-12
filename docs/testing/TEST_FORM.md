@@ -62,7 +62,7 @@ Ca test phải xuất phát từ code thật, không viết theo trí nhớ. Đ�
 | **L** | Vòng đời / gián đoạn | Back, Home, khoá màn, xoay, màn con, process bị kill, đổi ngôn ngữ: có mất trạng thái, chạy ngầm hay treo không? |
 | **C** | Crash / biên | Bấm dồn, dữ liệu hỏng / thiếu / rất lớn, file bị xoá, extras sai: có crash / ANR không? |
 | **M** | Leak / tài nguyên | Mở / đóng N lần: Activity, View, PSS có trở lại mức cũ không? Player có được release, còn âm ngầm không? |
-| **U** | Giao diện | Có cắt chữ, tràn, chồng view, bị tai thỏ / thanh hệ thống che không? Đủ các trạng thái loading / rỗng / lỗi chưa? Cả en và vi |
+| **U** | Giao diện | Có cắt chữ, tràn, chồng view, bị tai thỏ / thanh hệ thống che không? Đủ các trạng thái loading / rỗng / lỗi chưa? Mọi ngôn ngữ app có |
 | **P** | Hiệu năng | Có giật khung, chạm có trễ, khởi động màn có chậm không? Có IO trên main thread, vẽ lặp khi rảnh không? |
 | **D** | Dữ liệu | Dữ liệu có còn sau kill / cập nhật app không? Giá trị mặc định có đúng không? Dữ liệu hỏng thì có tự phục hồi không? |
 | **Q** | Quyền | Cho phép / từ chối / từ chối hẳn / thu hồi lúc đang chạy; khác nhau theo API (≤ 28, 29–32, ≥ 33) |
@@ -94,7 +94,7 @@ ghi KQ. Các mục trong checklist không cần viết lại thành ca riêng.
 | K8 | Bấm dồn mọi nút mở màn / hộp thoại: chỉ mở 1 lần | 10 lần TAP nhanh |
 | K9 | Đủ trạng thái loading / rỗng / lỗi / có dữ liệu (nếu có) | Tạo điều kiện |
 | K10 | Không cắt chữ / tràn ở **en** | Chụp + `ui_dump.sh` |
-| K11 | Không cắt chữ / tràn ở **vi** (chữ dài hơn) | Đổi ngôn ngữ trong app |
+| K11 | Không cắt chữ / tràn ở ngôn ngữ thứ hai (nếu app có, vd. vi chữ dài hơn) | Đổi ngôn ngữ trong app |
 | K12 | Tai thỏ / thanh hệ thống không che nội dung, nút | Chụp màn |
 | K13 | Mọi nút có contentDescription, vùng chạm ≥ 48dp | `ui_dump.sh` (xem `content-desc`, bounds) |
 | K14 | Không leak sau 5 lần mở / đóng | `leak_check.sh` |
@@ -111,7 +111,7 @@ có điều kiện).
 |---|---|
 | Android API | `minSdk` (vd. 24) · 28 (quyền bộ nhớ cũ) · 30 · 33+ (quyền media mới) · target |
 | Màn hình | hẹp (360dp) · thường · rộng / tablet; có / không tai thỏ |
-| Ngôn ngữ | en · vi (+ ngôn ngữ chữ dài nhất app hỗ trợ) |
+| Ngôn ngữ | en + mọi ngôn ngữ app hỗ trợ (ưu tiên ngôn ngữ chữ dài nhất) |
 | ROM | AOSP / Pixel · MIUI · ColorOS / Realme |
 | Bộ nhớ | đủ · gần đầy (< 500 MB) |
 
@@ -212,7 +212,7 @@ Trên Windows Git Bash các script đã tự set `MSYS_NO_PATHCONV=1`. Lệnh ad
 
 ```markdown
 ## Lượt <n> - <yyyy-mm-dd> - build <versionCode> / <commit hoặc "chưa commit">
-- Máy: <model, API, độ phân giải>. Ngôn ngữ: en, vi.
+- Máy: <model, API, độ phân giải>. Ngôn ngữ: <các ngôn ngữ đã kiểm>.
 - Unit test: `./gradlew :app:testDebugUnitTest` → <số> test, <pass/fail>.
 - Tổng: <x> ca · ✅ <a> · ❌ <b> · ⚠️ <c> · ⏭ <d>. Exit criteria: <đạt / chưa đạt, lý do>.
 

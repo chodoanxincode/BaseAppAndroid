@@ -26,7 +26,8 @@ dự án (vd. T04), `<pkg>` là applicationId (vd. `com.wavez.music.beatmaker`),
 - Trả lời, comment, docs, commit đều viết **tiếng Việt**, ngắn, nói "vì sao" chứ không lặp lại code.
 - Làm theo bảng "Quyết định đã chốt" trong PROGRESS. Chưa có quyết định thì: **luồng / chức năng / core theo app mẫu,
   hình ảnh / màu / font / icon theo Figma**.
-- Mỗi lần xong một phần: cập nhật PROGRESS rồi báo người dùng (mục 15). Không tự commit.
+- Mỗi lần xong một phần: cập nhật PROGRESS rồi **tự commit** (push chỉ khi người dùng bảo). Xong cả phase mới báo người
+  dùng (mục 15). Các mặc định đã chốt (package, ngôn ngữ, quảng cáo, Firebase, phát hành): `CLAUDE.md` mục 3.
 - Không đoán số liệu: màu lấy từ Figma API, hằng số lấy từ code app mẫu, kích thước lấy từ node Figma.
 
 ---
@@ -121,14 +122,14 @@ nào có giá trị mặc định hợp lý thì tự dùng mặc định và gh
 | Thông tin | Ví dụ (T04) | Mặc định nếu không có | Dùng ở |
 |---|---|---|---|
 | Tên app hiển thị | Beat Maker | — (phải hỏi) | `app_name` |
-| applicationId | `com.wavez.music.beatmaker` | — (phải hỏi) | GĐ 1 |
+| applicationId | `com.wavez.music.beatmaker` | `com.hidoan.<app>` | GĐ 1 |
 | Mã dự án | T04 | lấy từ tên file Figma | tên thư mục, commit |
 | Base copy từ đâu | repo T03 Shimeji Pets | repo app gần nhất mà người dùng chỉ | GĐ 1 |
 | Figma: fileKey, trang Styles, node từng màn, section spec | `Mfzn6xxgWzcLXj6udomLZd`, spec `10334:15927`, Home `10009:11950` | tự tìm bằng `get_metadata` nếu có fileKey | GĐ 2–4 |
 | App mẫu: package, version, nơi có APK | `com.beatmaker.drumpad.playguitar.playpiano` v1.1.3 | kéo từ máy test nếu đã cài | GĐ 5 |
 | Phạm vi tính năng lần này | Pad, Customize, Lesson, REC, Drum; không Piano / Guitar | — (phải hỏi) | GĐ 6 |
 | Quảng cáo | tạm tắt ở mọi màn mới tới khi có yêu cầu | tạm tắt, giữ hạ tầng | GĐ 3, 7 |
-| Ngôn ngữ | en + vi | en + vi | strings |
+| Ngôn ngữ | en + vi | **chỉ en** (thêm khi được yêu cầu) | strings |
 | Hướng màn hình | dọc; Drum ngang | theo Figma | manifest |
 
 ### 4.2 Việc làm ngay
@@ -148,7 +149,7 @@ nào có giá trị mặc định hợp lý thì tự dùng mặc định và gh
 robocopy <thư mục base> <thư mục cha>\<mã>-<app> /E /XD .git .idea build .gradle .kotlin /XF local.properties
 ```
 
-Rồi trong thư mục mới: `git init`, `git add -A`, commit đầu **chỉ khi người dùng đồng ý commit**, message
+Rồi trong thư mục mới: `git init`, `git add -A`, commit đầu, message
 `Khởi tạo <App> từ base của <app base>`.
 
 ### 5.2 Đổi định danh (một commit riêng: `Đổi package name thành <pkg>`)
@@ -158,7 +159,7 @@ Base HiDoan dùng package `com.hidoan.base`, tên riêng `HiDoanBase` (class `Hi
 | Nhóm | Chỗ đổi |
 |---|---|
 | Gradle | `app/build.gradle.kts`: `namespace`, `applicationId` |
-| Firebase | `app/google-services.json`: `package_name` phải khớp applicationId, nếu không build lỗi "No matching client found". Chưa có file thật thì sửa tạm `package_name` và ghi "Lưu ý: google-services tạm". |
+| Firebase | `app/google-services.json`: `package_name` phải khớp applicationId, nếu không build lỗi "No matching client found". Base có sẵn **file mẫu** (giá trị `replace-with-...`): chỉ đổi `package_name`, người dùng thay file thật sau. Ghi vào PROGRESS "Lưu ý". |
 | Thư mục code | Chuyển `app/src/{main,debug,test,androidTest}/java/<pkgdir cũ>` sang `<pkgdir mới>` (dùng `git mv` để giữ lịch sử) |
 | Khai báo package | Mọi dòng `package ...` và `import <pkg cũ>...` trong `.kt` (main, debug, test, androidTest) |
 | Layout dùng tên class đầy đủ | `<pkg cũ>.xxx.View` trong `res/layout/*.xml` (custom view, template ad `ad_tpl_*.xml`, `ad_native.xml`) |
@@ -166,7 +167,7 @@ Base HiDoan dùng package `com.hidoan.base`, tên riêng `HiDoanBase` (class `Hi
 | Debug | Tiền tố action trong `app/src/debug/.../AdbDriver.kt` (`<pkg>.debug.`) |
 | Tên Application | `XxxApp.kt` → `<App>App.kt` + manifest |
 | Docs | `CLAUDE.md` (lệnh `adb shell am start -n <pkg>/...`, action AdbDriver), `docs/BASE_GUIDE.md` (dòng "Đường dẫn code tính từ...") |
-| Hiển thị | `app_name` (values + values-vi), icon launcher (`mipmap-*`), theme name nếu muốn (`Theme.<App>`) |
+| Hiển thị | `app_name` (`values/` và mọi `values-<x>/` đang có), icon launcher (`mipmap-*`), theme name nếu muốn (`Theme.<App>`) |
 
 Lệnh gợi ý (Git Bash, chạy từ gốc repo):
 
@@ -318,8 +319,8 @@ script. Commit (khi được yêu cầu): `Import màu, font và kiểu chữ t�
 
 ### 7.5 Chữ và ngôn ngữ
 
-- Mọi chữ trong `values/strings.xml` (en) **và** `values-vi/strings.xml` (vi), viết cả hai khi thêm. Không hard-code
-  chữ trong layout / code.
+- Mọi chữ trong `values/strings.xml` (en). Ngôn ngữ khác chỉ thêm khi người dùng yêu cầu; khi đã có thì thêm chuỗi vào
+  mọi `values-<x>/strings.xml`. Không hard-code chữ trong layout / code.
 - Đổi locale ở Language: đổi **sau** khi đã mở màn kế tiếp (đổi trước thì màn bị tạo lại giữa chừng và kẹt, lỗi đã gặp).
 - Ngôn ngữ app hỗ trợ khai báo trong `core/language/AppLanguage.kt`.
 
@@ -332,7 +333,7 @@ theo `BASE_GUIDE.md` mục 3–4.
 ### 7.7 Kiểm một màn
 
 - [ ] Chụp màn trên máy, đặt cạnh `get_screenshot` của Figma: bố cục, màu, chữ, icon khớp.
-- [ ] `ui_dump.sh` không báo tràn; xem bằng mắt không cắt chữ (en và vi).
+- [ ] `ui_dump.sh` không báo tràn; xem bằng mắt không cắt chữ (mọi ngôn ngữ app có).
 - [ ] Nút có `contentDescription` (icon không chữ), vùng chạm ≥ 48dp.
 - [ ] Không hard-code màu hex / chữ.
 
@@ -529,12 +530,12 @@ chung nhiều màn), `<X>ScreenBinder` (phần View dùng chung).
    bằng / ngay trên ngưỡng.
 5. **Data**: Entity / Dao / migration, RepositoryImpl, mapper chịu lỗi, `@Binds` trong `BindingModule`.
 6. **Presentation**: Contract → ViewModel → layout (mục 7) → Activity (`@AndroidEntryPoint`, khai báo manifest với
-   `exported="false"`, `screenOrientation`), strings en + vi.
+   `exported="false"`, `screenOrientation`), strings (en, + ngôn ngữ app đã có).
 7. **Build + unit test** (mục 2).
 8. **Chạy trên máy thật**: cài, đi đủ luồng, chụp màn so Figma, `check_crash.sh`.
 9. **Test plan** (GĐ 8).
 10. **Cập nhật PROGRESS** + `CLAUDE.md` / `BASE_GUIDE.md` nếu thêm quy tắc hoặc đổi màn base.
-11. **Báo người dùng** (mục 15.2). Không tự commit.
+11. **Commit** phần vừa xong (mục 15.3). Hết phase thì **báo người dùng** (mục 15.2). Push chỉ khi được bảo.
 
 ### 11.2 Điều khiển máy test
 
@@ -561,7 +562,7 @@ chung nhiều màn), `<X>ScreenBinder` (phần View dùng chung).
 - [ ] Mọi việc con của phase trong PROGRESS đã tick hoặc ghi rõ lý do để lại.
 - [ ] Logic thuần có unit test; `testDebugUnitTest` pass.
 - [ ] Chạy trên máy thật đủ luồng, không crash (`check_crash.sh` sạch).
-- [ ] UI khớp Figma, không cắt chữ ở en và vi.
+- [ ] UI khớp Figma, không cắt chữ (mọi ngôn ngữ app có).
 - [ ] Test plan của tính năng đã chạy, ít nhất bộ smoke P0 (GĐ 8).
 - [ ] PROGRESS cập nhật: đã làm, khác app mẫu ở đâu, chưa test gì, lưu ý.
 
@@ -608,7 +609,7 @@ Gặp lỗi mới đáng nhớ thì **thêm dòng vào bảng này** (file này 
 **Phải hỏi** (AskUserQuestion, gộp câu, mỗi câu có phương án đề xuất và hệ quả):
 - Spec, Figma và app mẫu **mâu thuẫn**, hoặc spec không nói mà cách làm ảnh hưởng trải nghiệm / dữ liệu.
 - Cần thông tin chỉ người dùng có: ID quảng cáo, link server, tài khoản, file thật, APK, node Figma không tìm thấy.
-- Việc khó hoàn tác hoặc đụng ra ngoài: xoá dữ liệu trên máy test, đổi cài đặt máy, commit / push, publish.
+- Việc khó hoàn tác hoặc đụng ra ngoài: xoá dữ liệu trên máy test, đổi cài đặt máy, push, publish.
 - Muốn làm khác một quyết định đã chốt, hoặc đổi phạm vi.
 - Thêm thư viện lớn / có giấy phép lạ (vd. bộ mã hoá MP3 LAME), hoặc thêm quyền nhạy cảm (micro, vị trí).
 - Hai cách làm đều hợp lý mà khác nhau rõ về trải nghiệm.
@@ -620,7 +621,7 @@ Gặp lỗi mới đáng nhớ thì **thêm dòng vào bảng này** (file này 
 - Sửa lỗi tìm được khi test, miễn không đổi hành vi đã chốt.
 - Thứ tự việc trong một phase.
 
-**Không làm khi chưa được yêu cầu:** commit / push; gắn quảng cáo ở màn mới; thêm màn / placement riêng của app vào
+**Không làm khi chưa được yêu cầu:** push; thêm ngôn ngữ; gắn quảng cáo ở màn mới; thêm màn / placement riêng của app vào
 base; đổi cài đặt máy test.
 
 ---
@@ -646,10 +647,11 @@ Ngắn, tiếng Việt, theo thứ tự:
 4. **Cần người dùng quyết** (nếu có);
 5. **Bước tiếp theo** đề xuất.
 
-### 15.3 Commit (chỉ khi được yêu cầu)
+### 15.3 Commit (tự commit mỗi phần, push khi được bảo)
 
 - Message tiếng Việt, một dòng mô tả việc + dòng attribution theo hướng dẫn của hệ thống.
-- Mỗi giai đoạn / phase một commit; đổi package một commit riêng.
+- Commit sau **mỗi phần** xong (build + unit test pass): mỗi giai đoạn, mỗi màn / tính năng con; đổi package một commit
+  riêng. Push chỉ khi người dùng bảo.
 - Không commit `.idea/`, `build/`, `local.properties`, ảnh test-evidence.
 - Commit kèm file schema Room mới (`app/schemas/`).
 
