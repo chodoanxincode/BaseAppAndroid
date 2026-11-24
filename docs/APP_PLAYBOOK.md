@@ -592,6 +592,8 @@ Theo `docs/testing/TEST_FORM.md`:
 | Link `*.r2.dev` | Máy test không phân giải DNS, tải lỗi | Thử bằng server local (11.2); báo người dùng đổi link |
 | `JAVA_HOME` chưa set | `./gradlew` báo không tìm thấy java | `bash tools/dev_env.sh` rồi `source .dev-env` |
 | Git Bash đổi đường dẫn | `adb shell df /data` ra `C:/Program Files/Git/data` | `export MSYS_NO_PATHCONV=1` |
+| Máy test gần đầy (< ~600 MB trống) | `INSTALL_FAILED_INSUFFICIENT_STORAGE` với APK có FFmpegKit (66–80 MB) | Gỡ bản cũ của chính app đang test rồi cài; APK app mẫu: bỏ `lib/<ABI khác>` trong zip, `zipalign -p 4`, ký `apksigner.jar` bằng `~/.android/debug.keystore` (P19: 80 → 51 MB). Không xoá dữ liệu app khác khi chưa hỏi |
+| Bảng "AdMob native ad validator" (test ad) | Che nút gần native, tap rơi vào bảng | Bấm Dismiss của bảng trước khi tap nút bên dưới |
 | Máy MIUI | `adb shell input` bị chặn | AdbDriver broadcast |
 | Repo mới clone / copy chưa có `local.properties` | Gradle: "SDK location not found" | `bash tools/dev_env.sh` + `source .dev-env` (đặt `ANDROID_HOME`) |
 | Máy test đầy bộ nhớ | `INSTALL_FAILED_INSUFFICIENT_STORAGE` | Hỏi người dùng dọn (APK cũ trong `/data/local/tmp`) |
