@@ -8,6 +8,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.appcompat.app.AppCompatDelegate
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
@@ -37,6 +38,7 @@ import java.lang.ref.WeakReference
  * adb shell am broadcast -a com.hidoan.base.debug.SWIPE --ei x1 900 --ei y1 1000 --ei x2 100 --ei y2 1000
  * adb shell am broadcast -a com.hidoan.base.debug.TYPE --es text "3000"   (thay nội dung ô đang focus)
  * adb shell am broadcast -a com.hidoan.base.debug.BACK
+ * adb shell am broadcast -a com.hidoan.base.debug.NIGHT --es mode light|dark|system   (đổi sáng/tối riêng app, không đụng cài đặt máy)
  * adb shell am broadcast -a com.hidoan.base.debug.TAPS --es seq "136,1016,0;359,1016,400"
  *   (chuỗi chạm: "x,y,mốcMs" - mốc tính từ lúc nhận broadcast, để test nhịp Lesson chính xác tới vài ms)
  * ```
@@ -75,7 +77,7 @@ private object AdbDriver {
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })
-        val filter = IntentFilter().apply { listOf("TAP", "TAPS", "SWIPE", "TYPE", "BACK").forEach { addAction(PREFIX + it) } }
+        val filter = IntentFilter().apply { listOf("TAP", "TAPS", "SWIPE", "TYPE", "BACK", "NIGHT").forEach { addAction(PREFIX + it) } }
         ContextCompat.registerReceiver(app, object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) = handle(intent)
         }, filter, ContextCompat.RECEIVER_EXPORTED)
@@ -83,6 +85,16 @@ private object AdbDriver {
 
     private fun handle(intent: Intent) {
         val activity = resumed?.get() ?: run { Log.w(TAG, "no resumed activity"); return }
+        if (intent.action == PREFIX + "NIGHT") {
+            AppCompatDelegate.setDefaultNightMode(
+                when (intent.getStringExtra("mode")) {
+                    "light" -> AppCompatDelegate.MODE_NIGHT_NO
+                    "dark" -> AppCompatDelegate.MODE_NIGHT_YES
+                    else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+            )
+            return
+        }
         when (intent.action?.removePrefix(PREFIX)) {
             "TAP" -> {
                 val x = intent.getIntExtra("x", 0).toFloat()

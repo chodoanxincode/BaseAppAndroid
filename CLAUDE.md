@@ -102,6 +102,7 @@ docs/testing/scripts/leak_check.sh <nhãn>   # đếm Activity / View / PSS sau 
 ```
 
 - Máy chặn `adb shell input` (MIUI): dùng broadcast `<pkg>.debug.TAP|TAPS|SWIPE|TYPE|BACK` (`AdbDriver.kt`).
+- Xem bản sáng / tối mà không đổi cài đặt máy: broadcast `<pkg>.debug.NIGHT --es mode light|dark|system`.
 - Override Remote Config trên máy: Settings → Debug config (bản debug).
 
 ## 9. Không được làm
