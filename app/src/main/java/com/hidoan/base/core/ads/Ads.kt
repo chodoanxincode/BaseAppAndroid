@@ -38,10 +38,17 @@ object Ads {
         get() = consentInformation?.privacyOptionsRequirementStatus ==
                 ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
 
+    /**
+     * @param onConsentResolved chạy một lần khi bước consent (UMP) xong - hỏi xong form hoặc không cần hỏi - trước khi
+     * SDK khởi tạo xong. Màn Splash chỉ cần chờ tới đây (như P19); [onReady] có thể chậm vài giây trên máy yếu.
+     */
     fun initialize(
         activity: Activity,
+        onConsentResolved: () -> Unit = {},
         onReady: (Boolean) -> Unit = {},
     ) {
+        if (!adsEnabled || ready || initializationStarted && consentResolved) onConsentResolved()
+        else consentCallbacks += onConsentResolved
         if (!adsEnabled) {
             onReady(false); return
         }
@@ -59,14 +66,27 @@ object Ads {
             {
                 initializeIfAllowed(activity, consent)
                 UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) {
+                    resolveConsent()
                     initializeIfAllowed(activity, consent)
                     if (!consent.canRequestAds()) finishInitialization(false)
                 }
             },
             {
+                resolveConsent()
                 if (consent.canRequestAds()) initializeSdk(activity) else finishInitialization(false)
             },
         )
+    }
+
+    @Volatile private var consentResolved = false
+    private val consentCallbacks = mutableListOf<() -> Unit>()
+
+    @Synchronized
+    private fun resolveConsent() {
+        consentResolved = true
+        val callbacks = consentCallbacks.toList()
+        consentCallbacks.clear()
+        callbacks.forEach { it() }
     }
 
     private fun initializeIfAllowed(activity: Activity, consent: ConsentInformation) {
